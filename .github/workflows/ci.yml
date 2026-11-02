@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.so }}
+
+    # bash nos tres sistemas: no Windows o shell padrao e o PowerShell, e ele
+    # desmonta "-Dexec.args=..." em dois argumentos antes de o Maven ver.
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      fail-fast: false
+      matrix:
+        so: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Testes
+        run: mvn -B -ntp verify
+
+      - name: Os expoentes que dao primo
+        run: mvn -B -ntp -q exec:java -Dexec.args="primos"
+
+      - name: A forma 2kp+1 dos fatores
+        run: mvn -B -ntp -q exec:java -Dexec.args="fatores"
+
+      - name: Lucas-Lehmer contra primalidade geral
+        run: mvn -B -ntp -q exec:java -Dexec.args="juiz"
+
+      - name: Quanto custa cada expoente
+        run: mvn -B -ntp -q exec:java -Dexec.args="custo"
+
+      - name: Relatorios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-${{ matrix.so }}
+          path: target/surefire-reports
+
+  fundo:
+    # Ate o expoente 2000, onde M_1279 tem 386 digitos. O job confere a propria
+    # lista de expoentes e quebra se ela mudar.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Varredura ate o expoente 2000
+        run: mvn -B -ntp -q compile exec:java -Dexec.args="fundo"
